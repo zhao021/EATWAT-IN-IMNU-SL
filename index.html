@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>师大盛乐校区美食</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --tea-color: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --food-color: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --life-color: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            --study-color: linear-gradient(135deg, #c471f5 0%, #fa71cd 100%);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            padding: 15px 20px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f1f3f6;
+            border-radius: 30px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        .search-box:focus-within {
+            box-shadow: 0 0 0 2px rgba(100,149,237,0.5);
+        }
+        #searchInput {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px 10px;
+            font-size: 16px;
+            outline: none;
+        }
+        .search-box i {
+            color: #666;
+            margin-right: 8px;
+        }
+        main {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .category {
+            margin-bottom: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+        .category-header {
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .category:nth-child(4n+1) > .category-header {
+            background: var(--tea-color);
+            color: white;
+        }
+        .category:nth-child(4n+2) > .category-header {
+            background: var(--food-color);
+            color: white;
+        }
+        .category:nth-child(4n+3) > .category-header {
+            background: var(--life-color);
+            color: white;
+        }
+        .category:nth-child(4n+4) > .category-header {
+            background: var(--study-color);
+            color: white;
+        }
+        .category-header i {
+            transition: transform 0.3s;
+        }
+        .category-header.active i {
+            transform: rotate(180deg);
+        }
+        .shop-list {
+            max-height: 0;
+            overflow: hidden;
+            background: white;
+            transition: max-height 0.3s ease-out;
+        }
+        .shop-list.show {
+            max-height: 3000px;
+        }
+        .shop-item {
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s;
+        }
+        .shop-item:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+        .shop-item i {
+            margin-right: 12px;
+            color: #5c6bc0;
+        }
+        .no-results {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        .back-to-top.show {
+            opacity: 1;
+        }
+        @media (max-width: 600px) {
+            main {
+                padding: 15px;
+            }
+            .category-header {
+                font-size: 16px;
+            }
+            .shop-item {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="搜索店铺名称...">
+        </div>
+    </header>
+    
+    <main>
+        <div id="categoriesContainer"></div>
+    </main>
+    
+    <div class="back-to-top" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <script>
+         // 店铺数据
+        const shopData = {
+            "茶饮/咖啡/甜品": {
+                "奶茶/果茶": [
+                    "沪上阿姨·精选茶饮(和林格尔师大店)",
+                    "甜啦啦鲜果茶（师大店）",
+                    "鲜芒多·鲜果茶（和林师大东门店）",
+                    "蜜雪冰城（师大校内店）",
+                    "蜜雪冰城（盛乐师大西门店）",
+                    "蜜雪冰城（师大盛乐校区东门店）",
+                    "蜜念雪▪冰淇淋（盛乐师大东门店）",
+                    "蜜之雪（果茶●烤肉拌饭）",
+                    "陌年（果茶/奶茶）",
+                    "益禾堂（师大店）",
+                    "沪咖（呼和浩特和林格尔师大店）",
+                    "冰语时间（盛乐店）"
+                ],
+                "咖啡": [
+                    "库迪咖啡(内师大盛乐校区东门店)",
+                    "瑞幸咖啡(内蒙古师大盛乐店)",
+                    "幸运咖（师大东门店）"
+                ],
+                "烘焙/蛋糕": [
+                    "优麦尚品烘焙（盛乐师大店）",
+                    "奇源蛋糕店",
+                    "麦淇卡烘焙坊（饮品）",
+                    "智感烘焙（东门店）",
+                    "慕巴夫鲜花主题蛋糕（盛乐店）",
+                    "Smile Cake全麦生日蛋糕（动物奶油）",
+                    "良语福泽蛋糕烘焙（动物奶油•鲜花花束）",
+                    "花与蛋糕（盛乐师大店）",
+                    "糕幸一点（生日蛋糕·鲜花蛋糕）",
+                    "智感烘焙（三铺店）",
+                    "明轩烘焙店",
+                    "一点甜烘焙（和林格尔店）",
+                    "蛋糕王（盛乐园区店）",
+                    "茹花面包店"
+                ]
+            },
+            "快餐/汉堡/炸鸡": {
+                "汉堡/炸鸡": [
+                    "塔斯汀·中国汉堡(呼市盛乐师大东路店)",
+                    "华莱士·全鸡汉堡（和林格尔师大店）",
+                    "华莱士·全鸡汉堡（师大西门店）",
+                    "李木子汉堡（韩式炸鸡）",
+                    "正新鸡排（师大店）",
+                    "堡堡屋炸鸡汉堡",
+                    "酷麦滋（炸鸡/汉堡）",
+                    "熊家无二·韩式炸鸡&石锅拌饭（师大店）",
+                    "味多湾中式炸鸡（盛乐店）"
+                ]
+            },
+            "中式快餐/简餐": {
+                "麻辣烫/麻辣拌": [
+                    "杨国福麻辣烫·麻辣拌（东门店）",
+                    "张亮麻辣烫·麻辣拌（师大东门店）",
+                    "张亮麻辣烫·麻辣拌（师大西门店）",
+                    "觅小鲜砂锅麻辣烫(师大店)",
+                    "杜海霞(麻辣拌·脆皮鸡·火锅饭)",
+                    "刘文祥麻辣烫",
+                    "李晓七麻辣烫（麻辣拌·米线）",
+                    "苏和源麻辣烫（盛乐经济园区旗舰店）",
+                    "汤火功夫麻辣烫（米线/冷面）",
+                    "辣时尚麻辣烫(过桥米线)",
+                    "乔布尚·麻辣拌•麻辣烫",
+                    "原小原麻辣香锅麻辣烫米线",
+                    "天天麻辣烫（粘糊麻辣烫.麻辣拌.炸串）"
+                ],
+                "米线/米粉/面食": [
+                    "云香缘过桥米线/麻辣烫",
+                    "雯雯米线（凉皮.新疆炒米粉）",
+                    "八大祥米线（炸串）",
+                    "无名缘米粉（师大店）",
+                    "岳记宫廷罐罐面馋嘴饭.黄焖鸡米饭",
+                    "浪浪过桥米线",
+                    "一口乐肉酱米线",
+                    "稻香园番茄米线（干锅辣鸭头）",
+                    "青海牛肉面(盛乐园区润宇楼店)",
+                    "青海牛肉拉面（师大北门广场店）",
+                    "大盘鸡/兰州拉面",
+                    "正宗大同刀削面",
+                    "喜哥大同削面",
+                    "马有才兰州拉面（一厂店）",
+                    "阿克伦蒙式面吧",
+                    "禾面说大碗面",
+                    "朱晓克虢国酸辣粉"
+                ],
+                "黄焖鸡/鸡公煲": [
+                    "黄焖鸡米饭（盛乐师大店）",
+                    "黄焖鸡米饭（东门店）",
+                    "耿耿家鸡公煲(重庆鸡公煲)",
+                    "重庆川蜀鸡公煲",
+                    "鸡公煲（鱼煲）",
+                    "咯咯哒炒鸡米饭"
+                ],
+                "盖饭/拌饭": [
+                    "米乡拌饭（石锅拌饭·炸鸡·年糕）",
+                    "韩乡阁(石锅拌饭.炸鸡.冷面)",
+                    "食尚烤肉拌饭",
+                    "冰城火焰山烤肉拌饭（盖饭）",
+                    "闻香阁新奥尔良烤肉拌饭",
+                    "八两米烤肉拌饭（米线）"
+                ],
+                "饺子/包子": [
+                    "一兜肉饺子东北菜（盖饭/炒菜/盖面）",
+                    "河间驴肉火烧（大饼卷肉.西门店）",
+                    "河间驴肉火烧（师大东门店）",
+                    "河间驴肉火烧（西门路北店）",
+                    "杭州小笼包",
+                    "上海灌汤小笼包-南方面馆（师大东门店）",
+                    "苏州小笼包（粥汤，煎饺，炒面）",
+                    "王记饺子楼",
+                    "顶津豆腐坊包子"
+                ],
+                "其他中式快餐": [
+                    "索以抓抓鸡米饭",
+                    "李大川•隆江猪脚饭（师大店）",
+                    "李大川·口水鸡·椒麻鸡",
+                    "一纸鸡锡纸烧肉饭（师大店）",
+                    "乔氏三味牛肉饭（东门店）",
+                    "三味牛肉饭",
+                    "辣嘴鸭·鸭肠炒饭（和林师大店）",
+                    "久久鸭脖店（鸭肠炒饭）",
+                    "乐寿鸭（炒饭.鸭货.凉菜）",
+                    "馋嘴鸭货（鸭脖王/炒饭/凉菜）",
+                    "寂寞的鸭子（盛乐园区店）"
+                ]
+            },
+            "地方菜系": {
+                "东北菜": [
+                    "聚乡缘东北菜",
+                    "富华千层肉饼东北菜",
+                    "东北阿霍海鲜烧烤串吧（盛乐店）",
+                    "东北大饭包（手工饺子）",
+                    "一兜肉饺子东北菜（盖饭/炒菜/盖面）",
+                    "乡里乡亲东北农家饭店",
+                    "王记东北菜烧烤铁锅炖"
+                ],
+                "川湘菜": [
+                    "小四川饭店",
+                    "福满堂四川菜馆",
+                    "如家川菜馆",
+                    "丁小湘川湘食府",
+                    "湘之味餐馆"
+                ],
+                "西北/蒙餐": [
+                    "巴盟铁锅焖面烩菜",
+                    "巴盟君民烩菜焖面",
+                    "巴盟润英铁锅焖面",
+                    "图力嘎蒙餐（手把肉/炒菜/烩菜/盖饭）",
+                    "赞布林蒙式餐厅",
+                    "美俊炖羊肉莜面馆"
+                ],
+                "新疆菜": [
+                    "疆小赞特色米粉",
+                    "花小小新疆炒米粉（盛乐经济园区店）",
+                    "新疆炒米粉"
+                ]
+            },
+            "西式/日韩料理": {
+                "披萨/意面": [
+                    "尊宝比萨（焗饭·意面·师大店）",
+                    "扑满披萨",
+                    "卢卡披萨"
+                ],
+                "日料/韩料": [
+                    "町上寿司（日式拉面）",
+                    "阿里郎韩国料理",
+                    "年糕小王子（年糕火锅.炸鸡）"
+                ]
+            },
+            "烧烤/火锅/干锅": {
+                "烧烤/烤串": [
+                    "宋曼烤串（盛乐师大店）",
+                    "24小时银环烧烤",
+                    "贵琏烧烤涮（海鲜/东北烧烤）",
+                    "逢烤必过（烧烤/海鲜/烤鱼）",
+                    "云海音乐烤吧（干锅·海鲜）",
+                    "酷克烤吧",
+                    "利利音乐烧烤吧",
+                    "夜动力（烧烤/海鲜）"
+                ],
+                "火锅/干锅": [
+                    "冯校长老火锅（和林格尔经济园店）",
+                    "海青麻辣香锅•猛火爆炒（师大店）",
+                    "辛麻到瓦香鸡·泡泡鸡·啵啵鱼",
+                    "万州烤鱼",
+                    "疯狂蚂蚁小龙虾"
+                ]
+            },
+            "小吃/轻食": {
+                "小吃/煎饼/烤冷面": [
+                    "老宋鸡蛋灌饼（烤冷面、手抓饼)",
+                    "小张小吃店（烤冷面·鸡蛋灌饼·辣焙子）",
+                    "怪会卷·徐州肉筋卷饼",
+                    "左左香.老潼关肉夹馍（盛乐经济园店）"
+                ],
+                "轻食/沙拉": [
+                    "柚色轻食沙拉·健康餐(盛乐店)",
+                    "饕客轻食·酒肆"
+                ]
+            },
+            "其他": {
+                "粥/包子/早餐": [
+                    "三米粥铺(盛乐店)",
+                    "东北早餐（馅饼，包子/粥）",
+                    "粥小七⚫️煎饼果子（手工水饺）"
+                ],
+                "焖面/焖饭": [
+                    "焖菜青年（师大东门店）",
+                    "黄饷·咖喱蛋包饭（师大东路店）"
+                ],
+                "地方特色": [
+                    "绥远老烧麦",
+                    "聚顺源烧麦馆",
+                    "曼田稍麥(盛乐店）"
+                ]
+            }
+        };
+        function initPage() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            // 生成主分类
+            for (const mainCategory in shopData) {
+                const mainCategoryDiv = document.createElement('div');
+                mainCategoryDiv.className = 'category';
+                
+                const mainCategoryHeader = document.createElement('div');
+                mainCategoryHeader.className = 'category-header';
+                mainCategoryHeader.innerHTML = `
+                    ${mainCategory}
+                    <i class="fas fa-chevron-down"></i>
+                `;
+                
+                const subCategoriesDiv = document.createElement('div');
+                subCategoriesDiv.className = 'shop-list';
+                
+                // 生成子分类
+                for (const subCategory in shopData[mainCategory]) {
+                    const subCategoryDiv = document.createElement('div');
+                    
+                    const subCategoryHeader = document.createElement('div');
+                    subCategoryHeader.className = 'category-header';
+                    subCategoryHeader.innerHTML = `
+                        ${subCategory}
+                        <i class="fas fa-chevron-down"></i>
+                    `;
+                    
+                    const shopListDiv = document.createElement('div');
+                    shopListDiv.className = 'shop-list';
+                    
+                    // 生成店铺列表
+                    shopData[mainCategory][subCategory].forEach(shop => {
+                        const shopItem = document.createElement('div');
+                        shopItem.className = 'shop-item';
+                        shopItem.innerHTML = `
+                            <i class="fas fa-store"></i>
+                            ${shop}
+                        `;
+                        shopListDiv.appendChild(shopItem);
+                    });
+                    
+                    subCategoryDiv.appendChild(subCategoryHeader);
+                    subCategoryDiv.appendChild(shopListDiv);
+                    subCategoriesDiv.appendChild(subCategoryDiv);
+                }
+                
+                mainCategoryDiv.appendChild(mainCategoryHeader);
+                mainCategoryDiv.appendChild(subCategoriesDiv);
+                container.appendChild(mainCategoryDiv);
+            }
+
+            // 添加分类点击事件
+            document.querySelectorAll('.category-header').forEach(header => {
+                header.addEventListener('click', function() {
+                    const list = this.nextElementSibling;
+                    list.classList.toggle('show');
+                    this.classList.toggle('active');
+                });
+            });
+
+            // 滚动显示返回顶部按钮
+            window.addEventListener('scroll', function() {
+                const backToTop = document.querySelector('.back-to-top');
+                if (window.pageYOffset > 300) {
+                    backToTop.classList.add('show');
+                } else {
+                    backToTop.classList.remove('show');
+                }
+            });
+        }
+
+        // 搜索功能
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const allShops = document.querySelectorAll('.shop-item');
+            let hasResults = false;
+
+            allShops.forEach(shop => {
+                const shopName = shop.textContent.toLowerCase();
+                if (shopName.includes(searchTerm)) {
+                    shop.style.display = 'flex';
+                    hasResults = true;
+                    // 自动展开父级分类
+                    let parent = shop.parentElement;
+                    while (parent && !parent.classList.contains('category')) {
+                        if (parent.classList.contains('shop-list')) {
+                            parent.classList.add('show');
+                            if (parent.previousElementSibling) {
+                                parent.previousElementSibling.classList.add('active');
+                            }
+                        }
+                        parent = parent.parentElement;
+                    }
+                } else {
+                    shop.style.display = 'none';
+                }
+            });
+
+            // 无结果提示
+            const noResults = document.getElementById('noResults');
+            if (!hasResults && searchTerm) {
+                if (!noResults) {
+                    const noResultsDiv = document.createElement('div');
+                    noResultsDiv.id = 'noResults';
+                    noResultsDiv.className = 'no-results';
+                    noResultsDiv.textContent = '没有找到匹配的店铺';
+                    document.getElementById('categoriesContainer').appendChild(noResultsDiv);
+                }
+            } else if (noResults) {
+                noResults.remove();
+            }
+        });
+
+        // 返回顶部功能
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // 页面加载初始化
+        window.onload = initPage;
+    </script>
+</body>
+</html>
